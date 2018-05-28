@@ -58,7 +58,12 @@ public class OverridingModuleScanner {
                     // Get the BluetoothDevice object from the Intent
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     // Add the name and address to an array adapter to show in a ListView
-                    Log.i(logTag, "scanned : " + device.getAddress());
+                    Log.i(logTag, "scanned : " + "\naddress: "+device.getAddress()+"\nName: "+device.getName());
+                    if(device.getUuids()!=null){
+                        for(int i =0 ;i<device.getUuids().length; i++){
+                            Log.i(logTag, "UUID : "+device.getUuids()[i]);
+                        }
+                    }
                     mListener.onScan(new OverridingModule(device));
                 }
             }
@@ -75,7 +80,7 @@ public class OverridingModuleScanner {
     public boolean scan() throws RuntimeException{
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
-            throw new RuntimeException("Device does not support Bluetooth");
+            throw new RuntimeException("Group does not support Bluetooth");
         }
 
         /**
