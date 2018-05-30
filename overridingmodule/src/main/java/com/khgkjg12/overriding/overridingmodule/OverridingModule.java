@@ -1,29 +1,28 @@
 package com.khgkjg12.overriding.overridingmodule;
 
 import android.bluetooth.BluetoothDevice;
+import android.os.Parcelable;
 
 public class OverridingModule {
 
     BluetoothDevice mDevice;
-    Group mGroup;
+    String mName;
 
     OverridingModule(BluetoothDevice device){
         mDevice = device;
-    };
-
-    String getMac(){
-        return mDevice.getAddress();
+        mName = device.getAddress();
     }
 
-    BluetoothDevice getGroup(){
-        return mDevice;
+    public String getName(){
+        return mName;
     }
 
-    void setGroup(){
-
-    }
-
-    public BluetoothDevice getName(){
-
+    public boolean setName(String name){
+        if(name != null&&name.length()>0){
+            mName = name;
+            return true;
+        }else{
+            return false;
+        }
     }
 }
