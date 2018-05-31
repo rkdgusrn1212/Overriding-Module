@@ -108,12 +108,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
             mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
                 @Override
                 public void onError() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "애러가 발생하였습니다.",Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    Toast.makeText(getApplicationContext(), "애러가 발생하였습니다.",Toast.LENGTH_SHORT).show();
                 }
 
                 @Override
@@ -124,13 +119,13 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
 
                 @Override
                 public void onSuccess() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
 
-                            Toast.makeText(getApplicationContext(), "연결 성공.",Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    Toast.makeText(getApplicationContext(), "연결 성공.",Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onClosed() {
+                    Toast.makeText(getApplicationContext(), "연결 종료.",Toast.LENGTH_SHORT).show();
                 }
             });
         }

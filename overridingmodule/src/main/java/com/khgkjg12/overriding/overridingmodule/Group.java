@@ -10,14 +10,12 @@ import java.util.Map;
 import java.util.UUID;
 
 public class Group {
-    private String mEssid;
+    String mEssid;
     private String mName;
-    private int mChannel;
     private Map<Long, String> ipTable; // K : phone V: ip-address;
     private static final String baseIp = "10.10.100.";
 
     Group(String name, List<User> users){
-        mChannel = 7;
         mEssid = UUID.randomUUID().toString().replaceAll("-","").substring(0,20);
         Log.i(getClass().getSimpleName(), "new Group essid : " + mEssid);
 
