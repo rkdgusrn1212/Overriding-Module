@@ -3,11 +3,29 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="사용자 등록 안됨"
+        android:id="@+id/profile"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="페어링된 목록"/>
     <ListView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:id="@+id/listview"/>
+        android:layout_height="140dp"
+        android:background="#ccccff"
+        android:id="@+id/listview1"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="페어링 안된 목록"/>
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="#ccccff"
+        android:id="@+id/listview2"/>
 
     <Button
         android:layout_width="match_parent"
@@ -15,4 +33,15 @@
         android:text="SCAN"
         android:id="@+id/button"/>
 
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="더미 프로필 설정"
+        android:id="@+id/button2"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="더미 그룹 설정"
+        android:id="@+id/button3"/>
 </LinearLayout>

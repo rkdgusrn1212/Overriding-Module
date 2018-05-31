@@ -5,44 +5,67 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.khgkjg12.overriding.overridingmodule.OverridingModule;
-import com.khgkjg12.overriding.overridingmodule.OverridingModuleScanner;
+import com.khgkjg12.overriding.overridingmodule.OverridingModuleController;
+import com.khgkjg12.overriding.overridingmodule.User;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
-
-public class MainActivity extends AppCompatActivity implements OverridingModuleScanner.OnScanListener{
+public class MainActivity extends AppCompatActivity implements OverridingModuleController.OnScanListener {
 
 
-    private ListView mListView;
+    private ListView mListView1;
+    private ListView mListView2;
     private Button mScanButton;
-    private final int SCAN_PERMISSION = 0;
-    private final static int ENABLE_BLUETOOTH = 1;
+    private OverridingModuleController mController;
+    private TextView mProfileView;
+    private Button mButton2;
+    private Button mButton3;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
 
-        mListView = findViewById(R.id.listview);
-        mListView.setAdapter(new ModuleListAdapter(new ArrayList<OverridingModule>()));
+        mListView2 = findViewById(R.id.listview2);
+        mListView2.setAdapter(new ModuleListAdapter(new ArrayList<OverridingModule>()));
+        mListView2.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mController.connect((OverridingModule) parent.getItemAtPosition(position));
+            }
+        });
+
+        mListView1 = findViewById(R.id.listview1);
+        mListView1.setAdapter(new ModuleListAdapter(new ArrayList<OverridingModule>()));
+        mListView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mController.connect((OverridingModule) parent.getItemAtPosition(position));
+            }
+        });
+
 
         mScanButton = findViewById(R.id.button);
         mScanButton.setOnClickListener(new View.OnClickListener() {
@@ -51,77 +74,84 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                 scan();
             }
         });
-        OverridingModuleScanner scanner = OverridingModuleScanner.getInstance();
-        scanner.init(getApplication());
-        scanner.setOnScanListner(this);
+        mProfileView = findViewById(R.id.profile);
+        mButton2 = findViewById(R.id.button2);
+        mButton2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mController.setProfile("01011111111","더미", Uri.parse("amude"));
+                User user = mController.getProfile();
+                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+            }
+        });
+        mButton3 = findViewById(R.id.button3);
+        mButton3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mController.putUser("34827273737","더미1",null);
+                mController.putUser("12347328473","더미2" , null);
+                mController.createGroup("더미 그룹", mController.getUserList());
+                User user = mController.getProfile();
+                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+            }
+        });
+        init();
+    }
+
+    private void init(){
+        mController = OverridingModuleController.getInstance(this);
+        if(mController != null) {
+            User user = mController.getProfile();
+            mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+            mController.scannerOn();
+            mController.setOnScanListener(this);
+            mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
+                @Override
+                public void onError() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "애러가 발생하였습니다.",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onStarted() {
+
+                    Toast.makeText(getApplicationContext(), "연결 시작.",Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onSuccess() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            Toast.makeText(getApplicationContext(), "연결 성공.",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+        }
     }
 
     private void scan(){
-        if(checkScanPermission()) {
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            if(bluetoothAdapter.isEnabled()){
-                ((ModuleListAdapter)mListView.getAdapter()).clearList();
-                OverridingModuleScanner scanner = OverridingModuleScanner.getInstance();
-                scanner.scan();
-            }else{
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, ENABLE_BLUETOOTH);
-            }
+        if(mController==null){
+            init();
+            return;
         }
-    }
-
-    private boolean checkScanPermission(){
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            List<String> permissionList = new ArrayList<>();
-            if (checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
-                permissionList.add(Manifest.permission.BLUETOOTH);
-            }
-            if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
-                permissionList.add(Manifest.permission.BLUETOOTH_ADMIN);
-            }
-            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                permissionList.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-            }
-
-            if (permissionList.size() > 0) {
-
-                requestPermissions(Arrays.copyOf(permissionList.toArray(), permissionList.size(), String[].class), SCAN_PERMISSION);
-                return false;
-            }
-        }
-        return true;
+        mController.scan();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==ENABLE_BLUETOOTH){
-            if(resultCode == RESULT_OK){
-                scan();
-            }
-        }
+    public void onScanEachModule(OverridingModule module) {
+        ((ModuleListAdapter)mListView2.getAdapter()).addModule(module);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(requestCode == SCAN_PERMISSION){
-            boolean isGranted = true;
-            for(int i=0 ;i<grantResults.length; i++){
-                if(grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                    isGranted = false;
-                }
-            }
-            if(isGranted){
-                scan();
-            }
-        }
-    }
-
-    @Override
-    public void onScan(OverridingModule module) {
-        ((ModuleListAdapter)mListView.getAdapter()).addModule(module);
+    public void onScanPairedList(List<OverridingModule> modules) {
+        ((ModuleListAdapter)mListView1.getAdapter()).updateList(modules);
     }
 
     private class ModuleListAdapter extends BaseAdapter{
@@ -132,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             this.list = list;
         }
 
-        void updateList(ArrayList<OverridingModule> list){
+        void updateList(List<OverridingModule> list){
             this.list.clear();
             this.list.addAll(list);
             notifyDataSetChanged();
@@ -169,15 +199,14 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                 convertView = getLayoutInflater().inflate(R.layout.main_activity_listview_item, parent,false);
             }
             TextView textView = convertView.findViewById(R.id.textview);
-            textView.setText(list.get(position).getMac());
+            textView.setText(list.get(position).getName());
             return convertView;
         }
     }
 
     @Override
     protected void onDestroy() {
-        OverridingModuleScanner scanner = OverridingModuleScanner.getInstance();
-        scanner.close();
+        mController.scannerOff();
         super.onDestroy();
     }
 }
