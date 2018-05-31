@@ -1,5 +1,9 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
 
+tasks.withType(Javadoc){
+    options.addStringOption('encoding','UTF-8')
+}
 android {
     compileSdkVersion 27
 
@@ -25,4 +29,13 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:27.1.1'
+}
+
+publish {
+    userOrg = 'rkdgusrn1212'
+    groupId = 'com.khgkjg12.overriding'
+    artifactId = 'overridingmodule'
+    publishVersion = '0.1.0'
+    desc = 'Overriding Module Controller Library first version.'
+    website = 'https://github.com/rkdgusrn1212/Overriding-Module'
 }

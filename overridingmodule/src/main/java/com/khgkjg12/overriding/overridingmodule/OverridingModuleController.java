@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.AnyThread;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.WorkerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -63,6 +64,7 @@ public class OverridingModuleController{
             if (appCompatActivity.checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH)) {
                     PermissionExplainDialog.newInstance("블루투스 권한", "디바이스의 블루투스를 사용하기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.M)
                         @Override
                         public void agreeToPermissionExplainDialog() {
                             appCompatActivity.requestPermissions(
@@ -82,6 +84,7 @@ public class OverridingModuleController{
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_ADMIN)) {
                     PermissionExplainDialog.newInstance("블루투스 관리자 권한", "디바이스의 블루투스를 사용하기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
 
+                        @RequiresApi(api = Build.VERSION_CODES.M)
                         @Override
                         public void agreeToPermissionExplainDialog() {
                             appCompatActivity.requestPermissions(
@@ -100,6 +103,7 @@ public class OverridingModuleController{
             if (appCompatActivity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)) {
                     PermissionExplainDialog.newInstance("위치데이터 접근 권한", "안드로이드 버전 M부터 블루투스 디바이스의 스켄을 위해 사용됩니다.", new PermissionExplainDialog.OnResultListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.M)
                         @Override
                         public void agreeToPermissionExplainDialog() {
                             appCompatActivity.requestPermissions(
@@ -251,24 +255,32 @@ public class OverridingModuleController{
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private boolean isError;
 
-        public CommunicationThread(BluetoothSocket socket) {
+        CommunicationThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
+            isError = false;
 
             // Get the input and output streams, using temp objects because
             // member streams are final
             try {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
-            } catch (IOException e) { }
+            } catch (IOException e) {
+                isError = true;
+            }
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
 
         public void run() {
+            if(isError){
+                close();
+                return;
+            }
             byte[] buffer = new byte[1024];  // buffer store for the stream
             int bytes; // bytes returned from read()
 
@@ -284,20 +296,28 @@ public class OverridingModuleController{
                     break;
                 }
             }
+            close();
         }
 
         /* Call this from the main activity to send data to the remote device */
-        public void write(byte[] bytes) {
+        private void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
             } catch (IOException e) { }
         }
 
         /* Call this from the main activity to shutdown the connection */
-        public void close() {
+        private void close() {
+            mConnection = null;
             try {
                 mmSocket.close();
             } catch (IOException e) { }
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mOnConnectListener.onClosed();
+                }
+            });
         }
     }
 
@@ -334,14 +354,8 @@ public class OverridingModuleController{
 
         Log.d("hyungu","넘어가짐");
         if(mConnection!=null){
-            JSONObject json = new JSONObject();
-            try {
-                json.put("operation","NWST");
-                json.put("address",ip);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            mConnection.write(json.toString().getBytes());
+            String str = "EWST "+ip+" "+group.mEssid+" -1";
+            mConnection.write(str.getBytes());
         }
     }
 
@@ -349,6 +363,9 @@ public class OverridingModuleController{
         SharedPreferences sp = mApplication.getSharedPreferences("my_profile", Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = sp.edit();
         if(phone!=null) {
+            if(mConnection == null){
+
+            }
             mUser.mPhone = Long.valueOf(phone);
             edit.putLong("phone", mUser.mPhone);
         }
@@ -400,5 +417,7 @@ public class OverridingModuleController{
         void onStarted();
         @AnyThread
         void onSuccess();
+        @AnyThread
+        void onClosed();
     }
 }
