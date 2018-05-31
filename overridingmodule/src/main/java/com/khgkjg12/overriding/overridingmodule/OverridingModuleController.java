@@ -5,22 +5,33 @@ import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.AnyThread;
+import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class OverridingModuleController{
@@ -35,6 +46,8 @@ public class OverridingModuleController{
     private CommunicationThread mConnection;
     private OnConnectListener mOnConnectListener;
     private Handler mHandler;
+    private User mUser;
+    private OverridingDbHelper mDBHelper;
     public static final int REQUEST_PERMISSION_BLUETOOTH = 0x0101;
     public static final int REQUEST_PERMISSION_BLUETOOTH_ADMIN = 0x0102;
     public static final int REQUEST_PERMISSION_ACCESS_COARSE_LOCATION = 0x0103;
@@ -49,7 +62,7 @@ public class OverridingModuleController{
 
             if (appCompatActivity.checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH)) {
-                    PermissionExplainDialog.newInstance("외부 저장소 읽기 권한", "디바이스에 저장된 사진들을 불러오기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
+                    PermissionExplainDialog.newInstance("블루투스 권한", "디바이스의 블루투스를 사용하기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
                         @Override
                         public void agreeToPermissionExplainDialog() {
                             appCompatActivity.requestPermissions(
@@ -67,7 +80,7 @@ public class OverridingModuleController{
 
             if (appCompatActivity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_ADMIN)) {
-                    PermissionExplainDialog.newInstance("외부 저장소 읽기 권한", "디바이스에 저장된 사진들을 불러오기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
+                    PermissionExplainDialog.newInstance("블루투스 관리자 권한", "디바이스의 블루투스를 사용하기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
 
                         @Override
                         public void agreeToPermissionExplainDialog() {
@@ -86,7 +99,7 @@ public class OverridingModuleController{
 
             if (appCompatActivity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 if (appCompatActivity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                    PermissionExplainDialog.newInstance("외부 저장소 읽기 권한", "디바이스에 저장된 사진들을 불러오기 위해 필요합니다.", new PermissionExplainDialog.OnResultListener() {
+                    PermissionExplainDialog.newInstance("위치데이터 접근 권한", "안드로이드 버전 M부터 블루투스 디바이스의 스켄을 위해 사용됩니다.", new PermissionExplainDialog.OnResultListener() {
                         @Override
                         public void agreeToPermissionExplainDialog() {
                             appCompatActivity.requestPermissions(
@@ -123,7 +136,17 @@ public class OverridingModuleController{
         mHandler = new Handler(new InputMessageHandler());
         mApplication = appCompatActivity.getApplication();
         mBluetoothAdapter = bluetoothAdapter;
+        mDBHelper = new OverridingDbHelper(mApplication);
         mScanner = new OverridingModuleScanner(mApplication, mBluetoothAdapter);
+        SharedPreferences sp = mApplication.getSharedPreferences("my_profile", Context.MODE_PRIVATE);
+        String path = sp.getString("picture",null);
+        Uri uri;
+        if(path !=null){
+            uri = Uri.parse(path);
+        }else{
+            uri = null;
+        }
+        mUser = new User(sp.getLong("phone", 0), sp.getString("name", null), uri);
     }
 
     public void setOnScanListener(OnScanListener onScanListener){
@@ -289,10 +312,77 @@ public class OverridingModuleController{
         }
     }
 
-    public void write(byte[] bytes){
-        if(mConnection!=null){
-            mConnection.write(bytes);
+    /**
+     * 자신을 제외한 다른 구성원들을 friends로 전달.
+    * */
+    public void createGroup(String name, List<User> friends) {
+        if(mUser.mPhone == 0){
+            return;
         }
+        if(name!=null && friends!=null) {
+            friends.add(mUser);
+            joinGroup(new Group(name, friends));
+            Log.d("hyungu","만들어짐");
+        }
+    }
+
+    public void joinGroup(Group group){
+        String ip = group.getIPAddress(mUser);
+        if(ip == null){
+            return;
+        }
+
+        Log.d("hyungu","넘어가짐");
+        if(mConnection!=null){
+            JSONObject json = new JSONObject();
+            try {
+                json.put("operation","NWST");
+                json.put("address",ip);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            mConnection.write(json.toString().getBytes());
+        }
+    }
+
+    public void setProfile(String phone, String name, Uri picture){
+        SharedPreferences sp = mApplication.getSharedPreferences("my_profile", Context.MODE_PRIVATE);
+        SharedPreferences.Editor edit = sp.edit();
+        if(phone!=null) {
+            mUser.mPhone = Long.valueOf(phone);
+            edit.putLong("phone", mUser.mPhone);
+        }
+        if(name!=null){
+            mUser.mName = name;
+            edit.putString("name", mUser.mName);
+        }
+        if(picture!=null){
+            mUser.mPicture = picture;
+            edit.putString("picture", mUser.mPicture.getPath());
+        }
+        edit.apply();
+    }
+
+    public User getProfile(){
+        return mUser;
+    }
+
+    public void putUser(String phone, String name, Uri picture){
+        if(phone != null&&phone.length()>0){
+            mDBHelper.putUser(new User(Long.valueOf("1"+phone) ,name, picture));
+        }
+    }
+
+    public void updateUser(User user){
+
+    }
+
+    public void deleteUser(User user){
+
+    }
+
+    public List<User> getUserList(){
+        return mDBHelper.getUserList();
     }
 
     public void setOnConnectListener(OnConnectListener onConnectListener){

@@ -5,6 +5,7 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -26,6 +27,7 @@ import android.widget.Toast;
 
 import com.khgkjg12.overriding.overridingmodule.OverridingModule;
 import com.khgkjg12.overriding.overridingmodule.OverridingModuleController;
+import com.khgkjg12.overriding.overridingmodule.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +39,9 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
     private ListView mListView2;
     private Button mScanButton;
     private OverridingModuleController mController;
-    private EditText edit;
-    private Button button2;
+    private TextView mProfileView;
+    private Button mButton2;
+    private Button mButton3;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -71,16 +74,25 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
                 scan();
             }
         });
-
-
-        edit = findViewById(R.id.edit);
-        button2 = findViewById(R.id.button2);
-
-        button2.setOnClickListener(new View.OnClickListener() {
+        mProfileView = findViewById(R.id.profile);
+        mButton2 = findViewById(R.id.button2);
+        mButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String text = edit.getText().toString();
-                mController.write(text.getBytes());
+                mController.setProfile("01011111111","더미", Uri.parse("amude"));
+                User user = mController.getProfile();
+                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+            }
+        });
+        mButton3 = findViewById(R.id.button3);
+        mButton3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mController.putUser("34827273737","더미1",null);
+                mController.putUser("12347328473","더미2" , null);
+                mController.createGroup("더미 그룹", mController.getUserList());
+                User user = mController.getProfile();
+                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
             }
         });
         init();
@@ -89,6 +101,8 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
     private void init(){
         mController = OverridingModuleController.getInstance(this);
         if(mController != null) {
+            User user = mController.getProfile();
+            mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
             mController.scannerOn();
             mController.setOnScanListener(this);
             mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
