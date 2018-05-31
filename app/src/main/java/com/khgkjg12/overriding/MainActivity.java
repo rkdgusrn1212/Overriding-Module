@@ -37,16 +37,27 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
 
     private ListView mListView1;
     private ListView mListView2;
+    private ListView mListView3;
+    private ListView mListView4;
+    private ListView mListView5;
+
+    private UserListAdapter mUserAdapter3 , mUserAdapter4;
+
     private Button mScanButton;
     private OverridingModuleController mController;
     private TextView mProfileView;
     private Button mButton2;
     private Button mButton3;
+    private EditText editText1;
+    private EditText editText2;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
+
+        editText1 = findViewById(R.id.edit1);
+        editText2 = findViewById(R.id.edit2);
 
         mListView2 = findViewById(R.id.listview2);
         mListView2.setAdapter(new ModuleListAdapter(new ArrayList<OverridingModule>()));
@@ -67,6 +78,27 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         });
 
 
+
+        mListView3 = findViewById(R.id.listview3);
+        mListView3.setAdapter(mUserAdapter3 = new UserListAdapter());
+        mListView3.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    ((UserListAdapter)parent.getAdapter()).deleteUser(position);
+            }
+        });
+
+
+        mListView4 = findViewById(R.id.listview4);
+        mListView4.setAdapter(mUserAdapter4 = new UserListAdapter());
+        mListView4.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mUserAdapter3.addUser((User)parent.getAdapter().getItem(position));
+            }
+        });
+
         mScanButton = findViewById(R.id.button);
         mScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -79,20 +111,40 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mController.setProfile("01011111111","더미", Uri.parse("amude"));
-                User user = mController.getProfile();
-                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+                if(mController==null){
+                    init();
+                    return;
+                }
+                String phone = editText1.getText().toString();
+                String name = editText2.getText().toString();
+                if(phone.length()>0){
+                    mController.setCurrentUser(phone, null , null);
+                }
+                if(name.length()>0){
+                    mController.setCurrentUser(null, name , null);
+                }
+                User user = mController.getCurrentUser();
+                mProfileView.setText("사용자 정보 : phone = "+user.getPhone()+",name = "+user.getName());
             }
         });
         mButton3 = findViewById(R.id.button3);
         mButton3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mController.putUser("34827273737","더미1",null);
-                mController.putUser("12347328473","더미2" , null);
-                mController.createGroup("더미 그룹", mController.getUserList());
-                User user = mController.getProfile();
-                mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+                if(mController==null){
+                    init();
+                    return;
+                }
+                String phone = editText1.getText().toString();
+                String name = editText2.getText().toString();
+                if(phone.length()<1){
+                    return;
+                }
+                if(name.length()<1){
+                    name=null;
+                }
+                mController.putUser(phone,name,null);
+                mUserAdapter4.updateList(mController.getUserList());
             }
         });
         init();
@@ -101,8 +153,8 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
     private void init(){
         mController = OverridingModuleController.getInstance(this);
         if(mController != null) {
-            User user = mController.getProfile();
-            mProfileView.setText("phone:"+user.getPhone()+",name:"+user.getName());
+            User user = mController.getCurrentUser();
+            mProfileView.setText("사용자 정보: phone = "+user.getPhone()+",name = "+user.getName());
             mController.scannerOn();
             mController.setOnScanListener(this);
             mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
@@ -199,6 +251,56 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         }
     }
 
+    private class UserListAdapter extends BaseAdapter{
+
+        private ArrayList<User> users= new ArrayList<>();;
+
+        void addUser(User user){
+            users.add(user);
+            notifyDataSetChanged();
+        }
+
+        void updateList(List<User> users){
+            this.users.clear();
+            this.users.addAll(users);
+            notifyDataSetChanged();
+        }
+        void deleteUser(int i){
+            users.remove(i);
+            notifyDataSetChanged();
+        }
+        void clearList(){
+            users.clear();
+            notifyDataSetChanged();
+        }
+
+        @Override
+        public int getCount() {
+            return users.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return users.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if(convertView==null){
+                convertView = getLayoutInflater().inflate(R.layout.main_activity_listview2_item, parent,false);
+            }
+            TextView textView = convertView.findViewById(R.id.text_phone);
+            textView.setText(users.get(position).getPhone());
+            TextView textView2 = convertView.findViewById(R.id.text_name);
+            textView2.setText(users.get(position).getName());
+            return convertView;
+        }
+    }
     @Override
     protected void onDestroy() {
         mController.scannerOff();

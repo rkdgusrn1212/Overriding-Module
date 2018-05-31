@@ -49,6 +49,7 @@ public class OverridingModuleController{
     private Handler mHandler;
     private User mUser;
     private OverridingDbHelper mDBHelper;
+    private Group mGroup;
     public static final int REQUEST_PERMISSION_BLUETOOTH = 0x0101;
     public static final int REQUEST_PERMISSION_BLUETOOTH_ADMIN = 0x0102;
     public static final int REQUEST_PERMISSION_ACCESS_COARSE_LOCATION = 0x0103;
@@ -325,7 +326,6 @@ public class OverridingModuleController{
         @Override
         public boolean handleMessage(Message msg) {
             if(msg.what ==MESSAGE_READ) {
-                Log.d("hyungu", "MESSAGE RECEIVED");
                 return true;
             }
             return false;
@@ -342,45 +342,66 @@ public class OverridingModuleController{
         if(name!=null && friends!=null) {
             friends.add(mUser);
             joinGroup(new Group(name, friends));
-            Log.d("hyungu","만들어짐");
         }
     }
 
     public void joinGroup(Group group){
+        if(mGroup!=null){
+            return;
+        }
         String ip = group.getIPAddress(mUser);
         if(ip == null){
             return;
         }
-
-        Log.d("hyungu","넘어가짐");
         if(mConnection!=null){
             String str = "EWST "+ip+" "+group.mEssid+" -1";
             mConnection.write(str.getBytes());
+            mGroup = group;
         }
     }
 
-    public void setProfile(String phone, String name, Uri picture){
+    public void leaveGroup(){
+        if(mGroup == null){
+            return;
+        }
+        if(mConnection!=null){
+            String str = "EWST "+Group.baseIp+"100 "+""+" -1";
+            mConnection.write(str.getBytes());
+            mGroup = null;
+        }
+    }
+
+    public Group getCurrentGroup(){
+        return mGroup;
+    }
+
+    public void setCurrentUser(String phone, String name, Uri picture){
         SharedPreferences sp = mApplication.getSharedPreferences("my_profile", Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = sp.edit();
         if(phone!=null) {
-            if(mConnection == null){
-
+            if(mGroup==null){
+                mUser.mPhone = Long.valueOf(phone);
+                edit.putLong("phone", mUser.mPhone);
             }
-            mUser.mPhone = Long.valueOf(phone);
-            edit.putLong("phone", mUser.mPhone);
         }
         if(name!=null){
             mUser.mName = name;
             edit.putString("name", mUser.mName);
+            if(mConnection!=null&&mGroup!=null){
+                mConnection.write(("NMBR "+name+" -1").getBytes());
+            }
         }
         if(picture!=null){
             mUser.mPicture = picture;
             edit.putString("picture", mUser.mPicture.getPath());
+            if(mConnection!=null&&mGroup!=null){
+                mConnection.write(("IMBR "+name+" -1").getBytes());
+            }
         }
         edit.apply();
     }
 
-    public User getProfile(){
+    public User getCurrentUser(){
         return mUser;
     }
 

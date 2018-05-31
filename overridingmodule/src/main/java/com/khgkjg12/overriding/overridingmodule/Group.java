@@ -13,7 +13,7 @@ public class Group {
     String mEssid;
     private String mName;
     private Map<Long, String> ipTable; // K : phone V: ip-address;
-    private static final String baseIp = "10.10.100.";
+    static final String baseIp = "10.10.100.";
 
     Group(String name, List<User> users){
         mEssid = UUID.randomUUID().toString().replaceAll("-","").substring(0,20);
