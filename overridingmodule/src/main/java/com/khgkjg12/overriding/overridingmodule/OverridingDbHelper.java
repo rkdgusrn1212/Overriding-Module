@@ -10,6 +10,8 @@ import android.provider.BaseColumns;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 class OverridingDbHelper extends SQLiteOpenHelper {
 
@@ -23,8 +25,18 @@ class OverridingDbHelper extends SQLiteOpenHelper {
                     UserEntry.COLUMN_NAME_NAME + " TEXT," +
                     UserEntry.COLUMN_NAME_PICTURE + " TEXT)";
 
+    private static final String CREATE_TABLE_GROUP =
+            "CREATE TABLE " + GroupEntry.TABLE_NAME + " (" +
+                    GroupEntry.COLUMN_NAME_ESSID + " TEXT PRIMARY KEY," +
+                    GroupEntry.COLUMN_NAME_NAME + " TEXT)";
+    private static final String CREATE_TABLE_GROUP_USER =
+            "CREATE TABLE " + GroupUserEntry.TABLE_NAME + " (" +
+                    GroupUserEntry.COLUMN_NAME_GROUP_ID + " TEXT," +
+                GroupUserEntry.COLUMN_NAME_USER_ID + " TEXT,"+GroupUserEntry.COLUMN_NAME_IP + " TEXT PRIMARY KEY("+GroupUserEntry.COLUMN_NAME_GROUP_ID+", "+GroupUserEntry.COLUMN_NAME_USER_ID+"))";
+
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + UserEntry.TABLE_NAME;
+
 
     OverridingDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -45,16 +57,49 @@ class OverridingDbHelper extends SQLiteOpenHelper {
         onUpgrade(db, oldVersion, newVersion);
     }
 
-    private static class GroupEntry implements BaseColumns{
+    //pk = essid;
+    private static class GroupEntry{
         private static final String TABLE_NAME = "group";
-        private static final String COLUMN_NAME_TITLE = "title";
-        private static final String COLUMN_NAME_SUBTITLE = "subtitle";
+        private static final String COLUMN_NAME_NAME = "name";
+        private static final String COLUMN_NAME_ESSID = "essid";
+    }
+
+    //pk = ip
+    private static class GroupUserEntry{
+        private static final String TABLE_NAME = "group_user";
+        private static final String COLUMN_NAME_GROUP_ID = "group_id";
+        private static final String COLUMN_NAME_USER_ID = "user_id";
+        private static final String COLUMN_NAME_IP = "ip";
     }
 
     private static class UserEntry implements BaseColumns{
         private static final String TABLE_NAME = "user";
         private static final String COLUMN_NAME_NAME = "name";
         private static final String COLUMN_NAME_PICTURE = "picture";
+    }
+
+    boolean putGroup(Group group){
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(GroupEntry.COLUMN_NAME_ESSID, group.mEssid);
+        values.put(GroupEntry.COLUMN_NAME_NAME, group.mName);
+
+        long result = db.insert(GroupEntry.TABLE_NAME, null, values);
+        if(result == -1){
+            return false;
+        }
+        for(Map.Entry<User, String> entry : group.ipTable.entrySet()){
+            values =  new ContentValues();
+            values.put(GroupUserEntry.COLUMN_NAME_GROUP_ID, group.mName);
+            values.put(GroupUserEntry.COLUMN_NAME_GROUP_ID, group.mName);
+            values.put(GroupEntry.COLUMN_NAME_NAME, group.mName);
+            result = db.insert(GroupUserEntry.TABLE_NAME, null, values);
+            if(result == -1){
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

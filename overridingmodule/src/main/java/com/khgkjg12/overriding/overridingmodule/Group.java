@@ -14,9 +14,8 @@ import java.util.UUID;
 
 public class Group {
     String mEssid;
-    private String mName;
-    private Map<User, String> ipTable; // K : address V: User;
-    private List<User> mUsers;
+    String mName;
+    Map<User, String> ipTable; // K : address V: User;
     static final String baseIp = "10.10.100.";
 
     Group(String name, Set<User> users){
