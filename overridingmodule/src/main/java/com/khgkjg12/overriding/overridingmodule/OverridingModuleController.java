@@ -33,6 +33,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class OverridingModuleController{
@@ -335,7 +336,7 @@ public class OverridingModuleController{
     /**
      * 자신을 제외한 다른 구성원들을 friends로 전달.
     * */
-    public void createGroup(String name, List<User> friends) {
+    public void createGroup(String name, Set<User> friends) {
         if(mUser.mPhone == 0){
             return;
         }

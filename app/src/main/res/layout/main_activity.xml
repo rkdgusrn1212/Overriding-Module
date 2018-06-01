@@ -134,7 +134,8 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="현재 그룹"/>
+        android:text="현재 그룹"
+        android:id="@+id/current_group"/>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

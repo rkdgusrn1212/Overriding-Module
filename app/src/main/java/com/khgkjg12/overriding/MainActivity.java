@@ -25,12 +25,15 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.khgkjg12.overriding.overridingmodule.Group;
 import com.khgkjg12.overriding.overridingmodule.OverridingModule;
 import com.khgkjg12.overriding.overridingmodule.OverridingModuleController;
 import com.khgkjg12.overriding.overridingmodule.User;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements OverridingModuleController.OnScanListener {
 
@@ -48,8 +51,11 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
     private TextView mProfileView;
     private Button mButton2;
     private Button mButton3;
+    private Button mButton4;
     private EditText editText1;
     private EditText editText2;
+
+    private TextView currentGroup;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
 
         editText1 = findViewById(R.id.edit1);
         editText2 = findViewById(R.id.edit2);
+        currentGroup = findViewById(R.id.current_group);
 
         mListView2 = findViewById(R.id.listview2);
         mListView2.setAdapter(new ModuleListAdapter(new ArrayList<OverridingModule>()));
@@ -147,6 +154,30 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
                 mUserAdapter4.updateList(mController.getUserList());
             }
         });
+
+
+        mButton4 = findViewById(R.id.button4);
+        mButton4.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mController == null){
+                    init();
+                }
+                String groupName = editText2.getText().toString();
+                if(groupName.length()>0){
+                    mController.createGroup(groupName, new HashSet<>(mUserAdapter3.getList()));
+                    Group group = mController.getCurrentGroup();
+                    if(group!=null){
+                        Set<User> groupUsers = group.getUserSet();
+                        String str = "현재 그룹: "+group.getGroupName()+" ";
+                        for(User user : groupUsers){
+                            str +=user.getPhone()+", ";
+                        }
+                        currentGroup.setText(str);
+                    }
+                }
+            }
+        });
         init();
     }
 
@@ -155,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         if(mController != null) {
             User user = mController.getCurrentUser();
             mProfileView.setText("사용자 정보: phone = "+user.getPhone()+",name = "+user.getName());
+            mUserAdapter4.updateList(mController.getUserList());
             mController.scannerOn();
             mController.setOnScanListener(this);
             mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
@@ -272,6 +304,10 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         void clearList(){
             users.clear();
             notifyDataSetChanged();
+        }
+
+        List<User> getList(){
+            return users;
         }
 
         @Override
