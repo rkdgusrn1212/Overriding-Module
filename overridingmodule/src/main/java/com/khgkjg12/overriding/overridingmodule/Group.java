@@ -15,10 +15,11 @@ import java.util.UUID;
 public class Group {
     String mEssid;
     String mName;
+    Map<Long, User> userTable;
     Map<User, String> ipTable; // K : address V: User;
     static final String baseIp = "10.10.100.";
 
-    Group(String name, Set<User> users){
+    Group(String name, List<User> users){
         mEssid = UUID.randomUUID().toString().replaceAll("-","").substring(0,20);
         Log.i(getClass().getSimpleName(), "new Group essid : " + mEssid);
         mName = name;
@@ -27,12 +28,20 @@ public class Group {
         int i=0;
         for(User user : users){
             ipTable.put(user, baseIp+(101+i));
+            userTable.put(user.mPhone, user);
         }
+    }
+
+    Group(String essid, String name, Map<User, String> ipTable, Map<Long, User> userTable){
+        mEssid = essid;
+        mName = name;
+        this.ipTable = ipTable;
+        this.userTable = userTable;
     }
 
     //해당 user가 그룹에 없으면 null
     String getIPAddress(User user){
-        return ipTable.get(user);
+        return ipTable.get(userTable.get(user.mPhone));
     }
 
     public String getGroupName(){

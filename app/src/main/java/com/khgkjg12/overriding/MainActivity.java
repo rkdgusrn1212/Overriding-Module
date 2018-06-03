@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
 
     private UserListAdapter mUserAdapter3 , mUserAdapter4;
 
+    private GroupListAdapter mGroupAdapter5;
     private Button mScanButton;
     private OverridingModuleController mController;
     private TextView mProfileView;
@@ -107,6 +108,15 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             }
         });
 
+        mListView5 = findViewById(R.id.listview5);
+        mListView5.setAdapter(mGroupAdapter5 = new GroupListAdapter());
+        mListView5.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                mController.startGroupVoiceChat((Group)mGroupAdapter5.getItem(position));
+            }
+        });
+
         mScanButton = findViewById(R.id.button);
         mScanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -155,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             public void onClick(View v) {
                 String groupName = editText2.getText().toString();
                 if(groupName.length()>0){
-                    mController.createGroup(groupName, new HashSet<>(mUserAdapter3.getList()));
+                    mController.createGroup(groupName, mUserAdapter3.getList());
                     Group group = mController.getCurrentGroup();
                     if(group!=null){
                         Set<User> groupUsers = group.getUserSet();
@@ -164,6 +174,8 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                             str +=user.getPhone()+", ";
                         }
                         currentGroup.setText(str);
+                        mController.putGroup(group);
+                        mGroupAdapter5.updateGroup(mController.getGroupList());
                     }
                 }
             }
@@ -196,6 +208,8 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                 Toast.makeText(getApplicationContext(), "연결 종료.",Toast.LENGTH_SHORT).show();
             }
         });
+
+        mGroupAdapter5.updateGroup(mController.getGroupList());
     }
 
     private void scan(){
@@ -313,6 +327,59 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             textView.setText(users.get(position).getPhone());
             TextView textView2 = convertView.findViewById(R.id.text_name);
             textView2.setText(users.get(position).getName());
+            return convertView;
+        }
+    }
+
+    private class GroupListAdapter extends BaseAdapter{
+
+        private ArrayList<Group> groups= new ArrayList<>();;
+
+        void addGroup(Group group){
+            groups.add(group);
+            notifyDataSetChanged();
+        }
+
+        void updateGroup(List<Group> groups){
+            this.groups.clear();
+            this.groups.addAll(groups);
+            notifyDataSetChanged();
+        }
+        void deleteGroup(int i){
+            groups.remove(i);
+            notifyDataSetChanged();
+        }
+        void clearList(){
+            groups.clear();
+            notifyDataSetChanged();
+        }
+
+        List<Group> getList(){
+            return groups;
+        }
+
+        @Override
+        public int getCount() {
+            return groups.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return groups.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if(convertView==null){
+                convertView = getLayoutInflater().inflate(R.layout.main_activity_group_list_item, parent,false);
+            }
+            TextView textView = convertView.findViewById(R.id.text_name);
+            textView.setText(groups.get(position).getGroupName());
             return convertView;
         }
     }

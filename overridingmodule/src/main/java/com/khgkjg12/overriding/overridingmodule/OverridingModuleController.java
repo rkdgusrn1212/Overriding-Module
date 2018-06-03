@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -294,29 +295,63 @@ public class OverridingModuleController{
 
     /**
      * 자신을 제외한 다른 구성원들을 friends로 전달.
+     * putUser를 이용하여 DB에 저장된 User들을 get 하여 매개변수로 사용하세요
+     * @return false if 전번 중복 or 프로필 전번 없음 or 애러
     * */
-    public void createGroup(String name, Set<User> friends) {
+    public Group createGroup(String name, List<User> friends) {
         if(mUser.mPhone == 0){
-            return;
+            return null;
         }
-        if(name!=null && friends!=null) {
-            friends.add(mUser);
-            joinGroup(new Group(name, friends));
+        if(friends==null ||name==null){
+            return null;
+        }
+        for(int i =0; i< friends.size();i++){
+            for(int j=i+1; j<friends.size();j++){
+                if(friends.get(i).mPhone == friends.get(j).mPhone){
+                    return null;
+                }
+            }
+        }
+        friends.add(mUser);
+        Group group = new Group(name, friends);
+        if(mDBHelper.putGroup(group)){
+            return null;
+        }else{
+            return group;
         }
     }
 
-    public void joinGroup(Group group){
+    /**
+     * 먼저 putUser를 이용하여 user 앤트리를 DB에 생성한다음 리턴받은 값으로 joinGroup 하세요.
+     * 자신이 포함 안되있어도 일단은 그룹생성은 됨. 그러나 실행은 안될거임. 할라면 해당 전화번호를 가진 계정으로 프로필을 바꿔야함.
+     * */
+    public Group joinGroup(String essid, String name, Map<User, String> ipTable, Map<Long, User> userTable){
+        if(essid==null|| name == null|| ipTable==null||userTable==null){
+            return null;
+        }
+        Group group = new Group(essid,name,ipTable,userTable);
+        if(mDBHelper.putGroup(group)){
+            return null;
+        }else{
+            return group;
+        }
+    }
+
+    public boolean startGroupVoiceChat(Group group){
         if(mGroup!=null){
-            return;
+            return false;
         }
         String ip = group.getIPAddress(mUser);
         if(ip == null){
-            return;
+            return false;
         }
         if(mConnection!=null){
             String str = "EWST "+ip+" "+group.mEssid+" -1";
             mConnection.write(str.getBytes());
             mGroup = group;
+            return true;
+        }else{
+            return false;
         }
     }
 
@@ -330,6 +365,17 @@ public class OverridingModuleController{
             mGroup = null;
         }
     }
+
+    public void putGroup(Group group){
+        if(group != null){
+            mDBHelper.putGroup(group);
+        }
+    }
+
+    public List<Group> getGroupList(){
+        return mDBHelper.getGroupList();
+    }
+
 
     public Group getCurrentGroup(){
         return mGroup;

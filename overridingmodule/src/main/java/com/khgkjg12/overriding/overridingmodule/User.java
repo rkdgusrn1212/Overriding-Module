@@ -1,5 +1,6 @@
 package com.khgkjg12.overriding.overridingmodule;
 
+import android.content.pm.PermissionGroupInfo;
 import android.net.Uri;
 
 public class User {
@@ -12,6 +13,23 @@ public class User {
         mPhone = phone;
         mName = name;
         mPicture = picture;
+    }
+    User(long phone, String name, String picture){
+        mPhone = phone;
+        mName = name;
+        if(picture == null){
+            mPicture  = null;
+        }else{
+            mPicture = Uri.parse(picture);
+        }
+    }
+
+    public String getPicturePath(){
+        if(mPicture == null){
+            return null;
+        }else{
+            return mPicture.getPath();
+        }
     }
 
     public String getPhone(){
