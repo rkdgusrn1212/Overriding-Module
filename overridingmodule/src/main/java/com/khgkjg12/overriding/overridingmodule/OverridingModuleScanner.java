@@ -1,51 +1,42 @@
 package com.khgkjg12.overriding.overridingmodule;
 
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
-import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+public class OverridingModuleScanner {
 
-class OverridingModuleScanner {
-
-    private Application mApplication;
     private BroadcastReceiver mReceiver;
     private final String LOG_TAG = getClass().getSimpleName();
-    private OverridingModuleController.OnScanListener mListener;
-    private boolean mIsOpened = false;
-    private BluetoothAdapter mBluetoothAdapter;
+    private OnScanListener mListener;
+    private static OverridingModuleScanner mScanner;
 
-    OverridingModuleScanner(Application app, BluetoothAdapter bluetoothAdapter){
-        mApplication = app;
-        mBluetoothAdapter = bluetoothAdapter;
-    }
-
-    void setOnScanListener(OverridingModuleController.OnScanListener onScanListener){
-        mListener = onScanListener;
-    }
-
-    void open(){
-        if(mIsOpened){
-            Log.i(LOG_TAG, "already opened");
-            return;
+    /**
+     * @return 이미 인스턴스가 존재하면 null을 반환.
+     **/
+    static OverridingModuleScanner createInstance(Context context, OnScanListener onScanListener){
+        if(mScanner != null) {
+            return null;
         }
+        mScanner = new OverridingModuleScanner(context.getApplicationContext(), onScanListener);
+        return mScanner;
+    }
 
+    static OverridingModuleScanner getInstance(){
+        return mScanner;
+    }
+
+    private OverridingModuleScanner(Context context, OnScanListener onScanListener){
+        mListener = onScanListener;
         mReceiver = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 Log.i(LOG_TAG, "received something");
@@ -67,26 +58,30 @@ class OverridingModuleScanner {
                 }
             }
         };
-        mApplication.registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-        mIsOpened = true;
+        context.registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
     }
-
     /**
      * scan()을 호출할 엑티비티에서 동적권한 할당과 Bluetooth 켜기를 구현해야함.
      * @return 스켄이 시작되었는지 여부를 반환
      */
     boolean scan(){
-
-        if(mBluetoothAdapter.isDiscovering()){
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(bluetoothAdapter==null){
+            return false;
+        }
+        if(!bluetoothAdapter.enable()){
+            return false;
+        };
+        if(bluetoothAdapter.isDiscovering()){
             Log.i(LOG_TAG, "scanning is progressing... cancel scanning");
-            mBluetoothAdapter.cancelDiscovery();
+            bluetoothAdapter.cancelDiscovery();
 
         }
 
         Log.i(LOG_TAG, "scanning start");
 
-        if(mBluetoothAdapter.startDiscovery()) {
-            Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        if(bluetoothAdapter.startDiscovery()) {
+            Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
             if (pairedDevices.size() > 0) {
                 // Loop through paired devices
                 ArrayList<OverridingModule> mPairedList = new ArrayList<>();
@@ -105,8 +100,25 @@ class OverridingModuleScanner {
         }
     }
 
-    void close(){
-        mApplication.unregisterReceiver(mReceiver);
-        mIsOpened = false;
+    /**
+     * @return false if no Instance;
+     * */
+    static void destroyInstance(Context context){
+        if(mScanner!=null){
+            mScanner.destroy(context);
+        }
+    }
+
+    /**
+     * destory scanner
+     * */
+    private void destroy(Context context){
+        context.getApplicationContext().unregisterReceiver(mReceiver);
+        mScanner = null;
+    }
+
+    public interface OnScanListener{
+        void onScanEachModule(OverridingModule module);
+        void onScanPairedList(List<OverridingModule> modules);
     }
 }

@@ -28,6 +28,7 @@ import android.widget.Toast;
 import com.khgkjg12.overriding.overridingmodule.Group;
 import com.khgkjg12.overriding.overridingmodule.OverridingModule;
 import com.khgkjg12.overriding.overridingmodule.OverridingModuleController;
+import com.khgkjg12.overriding.overridingmodule.OverridingModuleScanner;
 import com.khgkjg12.overriding.overridingmodule.User;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity implements OverridingModuleController.OnScanListener {
+public class MainActivity extends AppCompatActivity implements OverridingModuleScanner.OnScanListener {
 
 
     private ListView mListView1;
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mListView2.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                mController.connect((OverridingModule) parent.getItemAtPosition(position));
+                mController.connect(getApplicationContext(),(OverridingModule) parent.getItemAtPosition(position));
             }
         });
 
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mListView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                mController.connect((OverridingModule) parent.getItemAtPosition(position));
+                mController.connect(getApplicationContext(), (OverridingModule) parent.getItemAtPosition(position));
             }
         });
 
@@ -118,17 +119,13 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mController==null){
-                    init();
-                    return;
-                }
                 String phone = editText1.getText().toString();
                 String name = editText2.getText().toString();
                 if(phone.length()>0){
-                    mController.setCurrentUser(phone, null , null);
+                    mController.setCurrentUser(getApplicationContext(), phone, null , null);
                 }
                 if(name.length()>0){
-                    mController.setCurrentUser(null, name , null);
+                    mController.setCurrentUser(getApplicationContext(), null, name , null);
                 }
                 User user = mController.getCurrentUser();
                 mProfileView.setText("사용자 정보 : phone = "+user.getPhone()+",name = "+user.getName());
@@ -138,10 +135,6 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mButton3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mController==null){
-                    init();
-                    return;
-                }
                 String phone = editText1.getText().toString();
                 String name = editText2.getText().toString();
                 if(phone.length()<1){
@@ -160,9 +153,6 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
         mButton4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mController == null){
-                    init();
-                }
                 String groupName = editText2.getText().toString();
                 if(groupName.length()>0){
                     mController.createGroup(groupName, new HashSet<>(mUserAdapter3.getList()));
@@ -178,49 +168,38 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
                 }
             }
         });
-        init();
-    }
-
-    private void init(){
         mController = OverridingModuleController.getInstance(this);
-        if(mController != null) {
-            User user = mController.getCurrentUser();
-            mProfileView.setText("사용자 정보: phone = "+user.getPhone()+",name = "+user.getName());
-            mUserAdapter4.updateList(mController.getUserList());
-            mController.scannerOn();
-            mController.setOnScanListener(this);
-            mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
-                @Override
-                public void onError() {
-                    Toast.makeText(getApplicationContext(), "애러가 발생하였습니다.",Toast.LENGTH_SHORT).show();
-                }
+        User user = mController.getCurrentUser();
+        mProfileView.setText("사용자 정보: phone = "+user.getPhone()+",name = "+user.getName());
+        mUserAdapter4.updateList(mController.getUserList());
+        mController.enableScanner(getApplicationContext(), this);
+        mController.setOnConnectListener(new OverridingModuleController.OnConnectListener() {
+            @Override
+            public void onError() {
+                Toast.makeText(getApplicationContext(), "애러가 발생하였습니다.",Toast.LENGTH_SHORT).show();
+            }
 
-                @Override
-                public void onStarted() {
+            @Override
+            public void onStarted() {
 
-                    Toast.makeText(getApplicationContext(), "연결 시작.",Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(getApplicationContext(), "연결 시작.",Toast.LENGTH_SHORT).show();
+            }
 
-                @Override
-                public void onSuccess() {
+            @Override
+            public void onSuccess() {
 
-                    Toast.makeText(getApplicationContext(), "연결 성공.",Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(getApplicationContext(), "연결 성공.",Toast.LENGTH_SHORT).show();
+            }
 
-                @Override
-                public void onClosed() {
-                    Toast.makeText(getApplicationContext(), "연결 종료.",Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
+            @Override
+            public void onClosed() {
+                Toast.makeText(getApplicationContext(), "연결 종료.",Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void scan(){
-        if(mController==null){
-            init();
-            return;
-        }
-        mController.scan();
+        mController.scan(this);
     }
 
     @Override
@@ -339,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleC
     }
     @Override
     protected void onDestroy() {
-        mController.scannerOff();
+        mController.destroy(this);
         super.onDestroy();
     }
 }

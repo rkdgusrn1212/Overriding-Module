@@ -1,9 +1,10 @@
 package com.khgkjg12.overriding.overridingmodule;
 
 import android.bluetooth.BluetoothDevice;
+import android.os.Parcel;
 import android.os.Parcelable;
 
-public class OverridingModule {
+public class OverridingModule{
 
     BluetoothDevice mDevice;
     String mName;
@@ -11,6 +12,11 @@ public class OverridingModule {
     OverridingModule(BluetoothDevice device){
         mDevice = device;
         mName = device.getAddress();
+    }
+
+    OverridingModule(BluetoothDevice device, String name){
+        mDevice = device;
+        mName = name;
     }
 
     public String getName(){

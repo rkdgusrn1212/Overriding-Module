@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">OverridingModule</string>
+    <string name="permission_explain">해당 서비스를 사용하려면 먼저 다음 권한에 동의해야합니다.\n\nBLUETOOTH, BLUETOOTH_ADMIN, COARSE_LOCATION.\n\n 여기서 COARSE_LOCATION 권한부여는 안드로이드 정책상 블루투스 기기를 스캔하기 위해 추가적으로 필요로합니다.</string>
+    <string name="permission_explain_head">해당 서비스를 사용하려면 먼저 다음 권한에 동의해야합니다.</string>
+    <string name="permission_explain_coarse_location">위치 권한은 안드로이드 정책상 블루투스 기기를 스캔하기 위해 추가적으로 필요합니다.</string>
+    <string name="permission_explain_bluetooth">블루투스 권한은 블루투스 통신을 통해 모듈과 통신을 하기 위해 필요합니다.</string>
+    <string name="permission_explain_bluetooth_admin">블루투스 관리 권한은 블루투스 장치를 제어하기 위해 필요합니다.</string>
+    <string name="accept">동의하기</string>
 </resources>
