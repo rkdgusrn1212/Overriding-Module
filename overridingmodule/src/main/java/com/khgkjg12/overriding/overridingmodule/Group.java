@@ -25,6 +25,7 @@ public class Group {
         mName = name;
 
         ipTable = new HashMap<>();
+        userTable = new HashMap<>();
         int i=0;
         for(User user : users){
             ipTable.put(user, baseIp+(101+i));

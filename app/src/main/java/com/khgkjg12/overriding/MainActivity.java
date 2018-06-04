@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
     private Button mButton2;
     private Button mButton3;
     private Button mButton4;
+    private Button mFinishChatButton;
     private EditText editText1;
     private EditText editText2;
 
@@ -114,6 +115,24 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 mController.startGroupVoiceChat((Group)mGroupAdapter5.getItem(position));
+                Group group = mController.getCurrentGroup();
+                if(group!=null){
+                    Set<User> groupUsers = group.getUserSet();
+                    String str = "현재 그룹: "+group.getGroupName()+" ";
+                    for(User user : groupUsers){
+                        str +=user.getPhone()+", ";
+                    }
+                    currentGroup.setText(str);
+                    mGroupAdapter5.updateGroup(mController.getGroupList());
+                }
+            }
+        });
+        mListView5.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                mController.leaveGroup((Group)mGroupAdapter5.getItem(position));
+                mGroupAdapter5.updateGroup(mController.getGroupList());
+                return true;
             }
         });
 
@@ -165,19 +184,16 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
             public void onClick(View v) {
                 String groupName = editText2.getText().toString();
                 if(groupName.length()>0){
-                    mController.createGroup(groupName, mUserAdapter3.getList());
-                    Group group = mController.getCurrentGroup();
-                    if(group!=null){
-                        Set<User> groupUsers = group.getUserSet();
-                        String str = "현재 그룹: "+group.getGroupName()+" ";
-                        for(User user : groupUsers){
-                            str +=user.getPhone()+", ";
-                        }
-                        currentGroup.setText(str);
-                        mController.putGroup(group);
-                        mGroupAdapter5.updateGroup(mController.getGroupList());
-                    }
+                    mController.createGroupWithUsers(groupName, mUserAdapter3.getList());
+                    mGroupAdapter5.updateGroup(mController.getGroupList());
                 }
+            }
+        });
+        mFinishChatButton = findViewById(R.id.button5);
+        mFinishChatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mController.stopGroupVoiceChat();
             }
         });
         mController = OverridingModuleController.getInstance(this);

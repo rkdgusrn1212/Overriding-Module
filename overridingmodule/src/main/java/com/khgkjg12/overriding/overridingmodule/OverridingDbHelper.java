@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -106,7 +107,7 @@ class OverridingDbHelper extends SQLiteOpenHelper {
 
             values =  new ContentValues();
             values.put(GroupUserEntry.COLUMN_NAME_GROUP_ID, group.mEssid);
-            values.put(GroupUserEntry.COLUMN_NAME_GROUP_ID, entry.getKey().mPhone);
+            values.put(GroupUserEntry.COLUMN_NAME_USER_ID, entry.getKey().mPhone);
             values.put(GroupUserEntry.COLUMN_NAME_IP, entry.getValue());
             result = db.insert(GroupUserEntry.TABLE_NAME, null, values);
             if(result == -1){
@@ -149,7 +150,7 @@ class OverridingDbHelper extends SQLiteOpenHelper {
             String MY_QUERY = "SELECT * FROM "+
                     GroupUserEntry.TABLE_NAME+" a INNER JOIN "+UserEntry.TABLE_NAME+" b ON a."+GroupUserEntry.COLUMN_NAME_USER_ID+"=b."+UserEntry._ID+" WHERE a."+GroupUserEntry.COLUMN_NAME_GROUP_ID+"=?";
 
-            Cursor cursorUser = db.rawQuery(MY_QUERY, new String[]{essid});
+            Cursor cursorUser = db.rawQuery(MY_QUERY,  new String[]{essid});
             Map<User, String> users = new HashMap<>();
             Map<Long, User> userTable = new HashMap<>();
             while(cursorUser.moveToNext()) {
@@ -167,6 +168,20 @@ class OverridingDbHelper extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return groups;
+    }
+
+    boolean deleteGroup(Group group){
+        SQLiteDatabase db = getWritableDatabase();
+        String selection = GroupEntry.COLUMN_NAME_ESSID + " = ?";
+        String[] selectionArgs = { group.mEssid };
+        int deletedRows = db.delete(GroupEntry.TABLE_NAME, selection, selectionArgs);
+
+        db.close();
+        if(deletedRows == 1){
+            return true;
+        }else{
+            return false;
+        }
     }
 
     /**
@@ -255,11 +270,40 @@ class OverridingDbHelper extends SQLiteOpenHelper {
             long itemId = cursor.getLong(
                     cursor.getColumnIndexOrThrow(UserEntry._ID));
             String itemName = cursor.getString(cursor.getColumnIndexOrThrow(UserEntry.COLUMN_NAME_NAME));
-            String itemPicture = cursor.getString(cursor.getColumnIndexOrThrow(UserEntry.COLUMN_NAME_NAME));
-            users.add(new User(itemId,itemName, Uri.parse(itemPicture)));
+            String itemPicture = cursor.getString(cursor.getColumnIndexOrThrow(UserEntry.COLUMN_NAME_PICTURE));
+            users.add(new User(itemId,itemName, itemPicture));
         }
         cursor.close();
         db.close();
         return users;
+    }
+
+    /**
+     * 없으면 null
+     * */
+    User getUser(String phone){
+        SQLiteDatabase db = getReadableDatabase();
+
+        String selection = UserEntry._ID + " = ?";
+        String[] selectionArgs = { "1"+phone };
+
+        Cursor cursor = db.query(
+                UserEntry.TABLE_NAME,   // The table to query
+                null,             // The array of columns to return (pass null to get all)
+                selection,              // The columns for the WHERE clause
+                selectionArgs,          // The values for the WHERE clause
+                null,                   // don't group the rows
+                null,                   // don't filter by row groups
+                null               // The sort order
+        );
+        if(cursor.moveToNext()) {
+            long itemId = cursor.getLong(
+                    cursor.getColumnIndexOrThrow(UserEntry._ID));
+            String itemName = cursor.getString(cursor.getColumnIndexOrThrow(UserEntry.COLUMN_NAME_NAME));
+            String itemPicture = cursor.getString(cursor.getColumnIndexOrThrow(UserEntry.COLUMN_NAME_PICTURE));
+
+            return new User(itemId, itemName, itemPicture);
+        }
+        return null;
     }
 }

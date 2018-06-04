@@ -293,27 +293,72 @@ public class OverridingModuleController{
         }
     }
 
+    public Group createGroupWithPhones(String name, List<String> phoneList){
+        if(mUser.mPhone == 0){
+            return null;
+        }
+        if(phoneList==null ||name==null){
+            return null;
+        }
+        phoneList.add(mUser.getPhone());
+        List<User> users = new ArrayList<>();
+        for(int i =0; i< phoneList.size();i++){
+            if(phoneList.get(i)==null||phoneList.get(i).length()==0){
+                return null;
+            }
+            for(int j=i+1; j<phoneList.size();j++){
+                if(phoneList.get(j)==null||phoneList.get(j).length()==0){
+                    return null;
+                }
+                if(phoneList.get(i).equals(phoneList.get(j))){
+                    return null;
+                }
+            }
+            users.add(new User(Long.valueOf("1"+phoneList.get(i)),null, (Uri) null));
+        }
+
+        return createGroup(name, users);
+    }
+
     /**
      * 자신을 제외한 다른 구성원들을 friends로 전달.
-     * putUser를 이용하여 DB에 저장된 User들을 get 하여 매개변수로 사용하세요
+     * putUser를 이용하여 DB에 저장된 User들을 get 하여 매개변수로 사용하세요, 자기 자신도 저장해야함. 이때 user 는 phone 속성만 가지고 있으면 됨.
      * @return false if 전번 중복 or 프로필 전번 없음 or 애러
     * */
-    public Group createGroup(String name, List<User> friends) {
+    public Group createGroupWithUsers(String name, List<User> friends) {
         if(mUser.mPhone == 0){
             return null;
         }
         if(friends==null ||name==null){
             return null;
         }
+        friends.add(mUser);
         for(int i =0; i< friends.size();i++){
+            if(friends.get(i)==null){
+                return null;
+            }
             for(int j=i+1; j<friends.size();j++){
+                if(friends.get(j)==null){
+                    return null;
+                }
                 if(friends.get(i).mPhone == friends.get(j).mPhone){
                     return null;
                 }
             }
         }
-        friends.add(mUser);
-        Group group = new Group(name, friends);
+        return createGroup(name, friends);
+    }
+
+    private Group createGroup(String name, List<User> users){
+        for(int i=0;i<users.size();i++){
+            mDBHelper.putUser(users.get(i));
+            User user =mDBHelper.getUser(users.get(i).getPhone());
+            if(user == null){
+                return null;
+            }
+            users.set(i,user);
+        }
+        Group group = new Group(name, users);
         if(mDBHelper.putGroup(group)){
             return null;
         }else{
@@ -322,14 +367,22 @@ public class OverridingModuleController{
     }
 
     /**
-     * 먼저 putUser를 이용하여 user 앤트리를 DB에 생성한다음 리턴받은 값으로 joinGroup 하세요.
+     * ipTable의 키는 전번 값은 아이피
      * 자신이 포함 안되있어도 일단은 그룹생성은 됨. 그러나 실행은 안될거임. 할라면 해당 전화번호를 가진 계정으로 프로필을 바꿔야함.
      * */
-    public Group joinGroup(String essid, String name, Map<User, String> ipTable, Map<Long, User> userTable){
-        if(essid==null|| name == null|| ipTable==null||userTable==null){
+    public Group joinGroup(String essid, String name, Map<String, String> ipTable){
+        if(essid==null|| name == null|| ipTable==null){
             return null;
         }
-        Group group = new Group(essid,name,ipTable,userTable);
+        Map<User, String> userIpTable = new HashMap<>();
+        Map<Long, User> userTable = new HashMap<>();
+        for(Map.Entry<String, String> entry : ipTable.entrySet()){
+            putUser(entry.getKey(),null,null);
+            User user = mDBHelper.getUser(entry.getKey());
+            userIpTable.put(user, entry.getValue());
+            userTable.put(user.mPhone, user);
+        }
+        Group group = new Group(essid,name,userIpTable,userTable);
         if(mDBHelper.putGroup(group)){
             return null;
         }else{
@@ -355,15 +408,25 @@ public class OverridingModuleController{
         }
     }
 
-    public void leaveGroup(){
+    public boolean stopGroupVoiceChat(){
         if(mGroup == null){
-            return;
+            return false;
         }
         if(mConnection!=null){
             String str = "EWST "+Group.baseIp+"100 "+""+" -1";
             mConnection.write(str.getBytes());
             mGroup = null;
+            return true;
+        }else{
+            return false;
         }
+    }
+
+    public boolean leaveGroup(Group group){
+        if(mConnection!=null||group==null) {
+            return false;
+        }
+        return mDBHelper.deleteGroup(group);
     }
 
     public void putGroup(Group group){
