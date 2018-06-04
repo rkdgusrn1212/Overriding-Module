@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.PermissionGroupInfo;
 import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -332,21 +333,22 @@ public class OverridingModuleController{
         if(friends==null ||name==null){
             return null;
         }
-        friends.add(mUser);
-        for(int i =0; i< friends.size();i++){
-            if(friends.get(i)==null){
+        List<User> users = new ArrayList<>(friends);
+        users.add(mUser);
+        for(int i =0; i< users.size();i++){
+            if(users.get(i)==null){
                 return null;
             }
-            for(int j=i+1; j<friends.size();j++){
-                if(friends.get(j)==null){
+            for(int j=i+1; j<users.size();j++){
+                if(users.get(j)==null){
                     return null;
                 }
-                if(friends.get(i).mPhone == friends.get(j).mPhone){
+                if(users.get(i).mPhone == users.get(j).mPhone){
                     return null;
                 }
             }
         }
-        return createGroup(name, friends);
+        return createGroup(name, users);
     }
 
     private Group createGroup(String name, List<User> users){
@@ -390,7 +392,7 @@ public class OverridingModuleController{
         }
     }
 
-    public boolean startGroupVoiceChat(Group group){
+    public boolean openGroup(Group group){
         if(mGroup!=null){
             return false;
         }
@@ -408,7 +410,7 @@ public class OverridingModuleController{
         }
     }
 
-    public boolean stopGroupVoiceChat(){
+    public boolean closeGroup(){
         if(mGroup == null){
             return false;
         }
@@ -421,12 +423,21 @@ public class OverridingModuleController{
             return false;
         }
     }
-
-    public boolean leaveGroup(Group group){
-        if(mConnection!=null||group==null) {
-            return false;
+    /**
+    * -1 fail, 0-> can't delete current chat group, 1->success
+    * */
+    public int leaveGroup(Group group){
+        if(group==null) {
+            return -1;
         }
-        return mDBHelper.deleteGroup(group);
+        if(mGroup!=null&&mGroup.mEssid.equals(group.mEssid)){
+            return 0;
+        }
+        if(mDBHelper.deleteGroup(group)){
+            return 1;
+        }else{
+            return -1;
+        }
     }
 
     public void putGroup(Group group){
@@ -440,7 +451,7 @@ public class OverridingModuleController{
     }
 
 
-    public Group getCurrentGroup(){
+    public Group getCurrentChatGroup(){
         return mGroup;
     }
 
@@ -480,12 +491,66 @@ public class OverridingModuleController{
         }
     }
 
-    public void updateUser(User user){
-
+    /**
+     *
+     * @param user 변경하고자 하는 User 객체
+     * @param name null 입력시 이름 제거
+     * @param picturePath null입력시 기본 이미지로 변경.
+     * @return 성공여부
+     */
+    public boolean updateUser(User user, String name, String picturePath){
+        if(!mDBHelper.updateUser(user, name, picturePath)){
+            return false;
+        }
+        if(mGroup!=null){
+            User groupedUser = mGroup.userTable.get(user.mPhone);
+            if(groupedUser!=null){
+                groupedUser.mName = name;
+                groupedUser.setPicture(picturePath);
+            }
+        }
+        return true;
+    }
+    public boolean updateUserName(User user, String name){
+        User savedUser = mDBHelper.getUser(user.getPhone());
+        if(savedUser == null){
+            return false;
+        }
+        String path = savedUser.getPicturePath();
+        if(!mDBHelper.updateUser(user, name, path)){
+            return false;
+        }
+        if(mGroup!=null){
+            User groupedUser = mGroup.userTable.get(user.mPhone);
+            if(groupedUser!=null){
+                groupedUser.mName = name;
+                groupedUser.setPicture(path);
+            }
+        }
+        return true;
+    }
+    public boolean updateUserPicture(User user, String picturePath){
+        User savedUser = mDBHelper.getUser(user.getPhone());
+        if(savedUser == null){
+            return false;
+        }
+        String name = savedUser.mName;
+        if(!mDBHelper.updateUser(user, name, picturePath)){
+            return false;
+        }
+        if(mGroup!=null){
+            User groupedUser = mGroup.userTable.get(user.mPhone);
+            if(groupedUser!=null){
+                groupedUser.mName = name;
+                groupedUser.setPicture(picturePath);
+            }
+        }
+        return true;
     }
 
-    public void deleteUser(User user){
 
+    public boolean deleteUser(User user){
+        return mDBHelper.deleteUser(user);
     }
 
     public List<User> getUserList(){

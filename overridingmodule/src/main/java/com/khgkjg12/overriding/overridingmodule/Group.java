@@ -1,5 +1,6 @@
 package com.khgkjg12.overriding.overridingmodule;
 
+import android.content.pm.PermissionGroupInfo;
 import android.support.annotation.NonNull;
 import android.util.ArraySet;
 import android.util.Log;

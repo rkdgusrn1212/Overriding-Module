@@ -32,9 +32,18 @@ public class User {
         }
     }
 
+    void setPicture(String path){
+        if(path == null){
+            mPicture = null;
+        }else{
+            mPicture = Uri.parse(path);
+        }
+    }
+
     public String getPhone(){
         return Long.toString(mPhone).substring(1);
     }
+
 
     public String getName(){
         return mName;

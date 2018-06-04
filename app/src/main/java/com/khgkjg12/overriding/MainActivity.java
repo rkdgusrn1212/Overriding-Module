@@ -94,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
         mListView3.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
                     ((UserListAdapter)parent.getAdapter()).deleteUser(position);
             }
         });
@@ -108,14 +107,22 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                 mUserAdapter3.addUser((User)parent.getAdapter().getItem(position));
             }
         });
+        mListView4.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                mController.deleteUser((User)mUserAdapter4.getItem(position));
+                mUserAdapter4.updateList(mController.getUserList());
+                return true;
+            }
+        });
 
         mListView5 = findViewById(R.id.listview5);
         mListView5.setAdapter(mGroupAdapter5 = new GroupListAdapter());
         mListView5.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                mController.startGroupVoiceChat((Group)mGroupAdapter5.getItem(position));
-                Group group = mController.getCurrentGroup();
+                mController.openGroup((Group)mGroupAdapter5.getItem(position));
+                Group group = mController.getCurrentChatGroup();
                 if(group!=null){
                     Set<User> groupUsers = group.getUserSet();
                     String str = "현재 그룹: "+group.getGroupName()+" ";
@@ -193,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
         mFinishChatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mController.stopGroupVoiceChat();
+                mController.closeGroup();
             }
         });
         mController = OverridingModuleController.getInstance(this);
@@ -395,7 +402,14 @@ public class MainActivity extends AppCompatActivity implements OverridingModuleS
                 convertView = getLayoutInflater().inflate(R.layout.main_activity_group_list_item, parent,false);
             }
             TextView textView = convertView.findViewById(R.id.text_name);
+            TextView userView = convertView.findViewById(R.id.text_users);
             textView.setText(groups.get(position).getGroupName());
+            String str = "";
+            Set<User> userSet = groups.get(position).getUserSet();
+            for(User user : userSet){
+                str+=user.getPhone()+"|";
+            }
+            userView.setText(str);
             return convertView;
         }
     }
