@@ -32,6 +32,9 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -56,6 +59,7 @@ public class OverridingModuleController{
     private OverridingDbHelper mDBHelper;
     private Group mGroup;
     private static final int MESSAGE_READ = 0x0301;
+    private String filePath;
 
     /**
      * @return 권한이 없거나, 블루투스를 지원하지 않거나, 블루투스가 꺼져있을때 null 반환
@@ -70,6 +74,7 @@ public class OverridingModuleController{
         mDBHelper = new OverridingDbHelper(context);
         SharedPreferences sp = context.getSharedPreferences("my_profile", Context.MODE_PRIVATE);
         String path = sp.getString("picture",null);
+        filePath = context.getFilesDir().getPath();
         Uri uri;
         if(path !=null){
             uri = Uri.parse(path);
@@ -285,9 +290,81 @@ public class OverridingModuleController{
     }
 
     private class InputMessageHandler implements Handler.Callback {
+
+        private boolean receiveImage = false;
+        private User receiveUser = null;
+        private File tempImage;
+        private int imageSize;
         @Override
         public boolean handleMessage(Message msg) {
+            if(mGroup==null){
+                return false;
+            }
             if(msg.what ==MESSAGE_READ) {
+                byte[] buffer = (byte[])msg.obj;
+                if(msg.arg1>3){
+                    String order = "";
+                    int i = 0;
+                    for(i = 0;i<4;i++){
+                        order+=buffer;
+                    }
+                    if(order.equals("NMUP")){
+                        String name="";
+                        String ip="";
+                        i++;
+                        while(buffer[i]!=' '){
+                            name+=buffer[i];
+                            i++;
+                        }
+                        i++;
+                        while(buffer[i]!=' '){
+                            ip+=buffer[i];
+                            i++;
+                        }
+                        User user = mGroup.ipKeyTable.get(ip);
+                        putUser(user.getPhone(), name, user.mPicture);
+                        return true;
+                    }
+                    if(order.equals("IMUP")){
+                        String imgSize="";
+                        String ip="";
+                        i++;
+                        while(buffer[i]!=' '){
+                            imgSize+=buffer[i];
+                            i++;
+                        }
+                        i++;
+                        while(buffer[i]!=' '){
+                            ip+=buffer[i];
+                            i++;
+                        }
+                        receiveUser = mGroup.ipKeyTable.get(ip);
+                        imageSize = Integer.getInteger(imgSize);
+                        tempImage = new File(filePath+"/"+receiveUser.getPhone()+".jpeg");
+                        receiveImage = true;
+                        return true;
+                    }
+                }
+                if(receiveImage){
+                    try {
+                        FileOutputStream outputStream = new FileOutputStream(tempImage);
+                        int i =0;
+                        while(i<1024){
+                            outputStream.write(buffer[i]);
+                            imageSize--;
+                            i++;
+                            if(imageSize<1){
+                                putUser(receiveUser.getPhone(),receiveUser.mName, Uri.fromFile(tempImage));
+                                receiveUser = null;
+                                receiveImage = false;
+                                outputStream.close();
+                                return true;
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
                 return true;
             }
             return false;
@@ -488,6 +565,77 @@ public class OverridingModuleController{
     public void putUser(String phone, String name, Uri picture){
         if(phone != null&&phone.length()>0){
             mDBHelper.putUser(new User(Long.valueOf("1"+phone) ,name, picture));
+        }
+    }
+
+    public boolean startVoiceChat(){
+        if(mConnection!=null&&mGroup!=null){
+            mConnection.write(("CALL -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean stopVoiceChat(){
+        if(mConnection!=null&&mGroup!=null){
+            mConnection.write(("CLOF -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean upMicVolumn(int volumn){
+        if(mConnection!=null){
+            mConnection.write(("MVST "+volumn+" -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+    public boolean upMicVolumn(){
+        if(mConnection!=null){
+            mConnection.write(("MVUP -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean downMicVolumn(){
+        if(mConnection!=null){
+            mConnection.write(("MVDW -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean upSpeakerVolumn(){
+        if(mConnection!=null){
+            mConnection.write(("VLUP -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean downSpeakerVolumn(){
+        if(mConnection!=null){
+            mConnection.write(("VLDW -1").getBytes());
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public boolean setSpeakerVolumn(int volumn){
+        if(mConnection!=null){
+            mConnection.write(("VLST "+volumn+" -1").getBytes());
+            return true;
+        }else{
+            return false;
         }
     }
 
