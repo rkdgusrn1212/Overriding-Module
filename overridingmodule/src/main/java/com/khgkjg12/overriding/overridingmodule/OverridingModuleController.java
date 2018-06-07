@@ -32,7 +32,9 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -501,7 +503,7 @@ public class OverridingModuleController{
         }
     }
     /**
-    * -1 fail, 0-> can't delete current chat group, 1->success
+    * @return -1 fail, 0 can't delete current chat group, 1 is success
     * */
     public int leaveGroup(Group group){
         if(group==null) {
@@ -553,6 +555,19 @@ public class OverridingModuleController{
             edit.putString("picture", mUser.mPicture.getPath());
             if(mConnection!=null&&mGroup!=null){
                 mConnection.write(("IMBR "+name+" -1").getBytes());
+                byte[] buffer = new byte[1024];
+                try {
+                    File file = new File("file://"+picture.getPath());
+                    FileInputStream fileInputStream = new FileInputStream(file);
+                    BufferedInputStream bufferedStream = new BufferedInputStream(fileInputStream);
+                    while (bufferedStream.read(buffer, 0, 1024) != -1) {
+                        mConnection.write(buffer);
+                    }
+                    bufferedStream.close();
+                    fileInputStream.close();
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
             }
         }
         edit.apply();

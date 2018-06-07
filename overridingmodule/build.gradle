@@ -7,13 +7,11 @@ tasks.withType(Javadoc){
 android {
     compileSdkVersion 27
 
-
-
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 27
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2"
 
     }
 
@@ -35,7 +33,7 @@ publish {
     userOrg = 'rkdgusrn1212'
     groupId = 'com.khgkjg12.overriding'
     artifactId = 'overridingmodule'
-    publishVersion = '0.1.0'
+    publishVersion = '0.1.3'
     desc = 'Overriding Module Controller Library first version.'
     website = 'https://github.com/rkdgusrn1212/Overriding-Module'
 }
